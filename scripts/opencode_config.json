@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "providers": {
+    "vllm-local": {
+      "name": "Local dumb vLLM (OpenWeight Fabric)",
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "baseURL": "http://localhost:8000/v1",
+        "apiKey": "local-poc-no-key-required"
+      },
+      "models": {
+        "qwen3-0.6b": {
+          "name": "Qwen 3 0.6B (Local)",
+          "limit": {
+            "output": 128
+          }
+        }
+      }
+    }
+  }
+}
