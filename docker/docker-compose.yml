@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  vllm:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: vllm-local-poc
+    ports:
+      - "8000:8000"
+    environment:
+      - HF_HOME=/model-cache
+    volumes:
+      # Mount the local project cache directory to avoid re-downloading inside the container
+      - ../model-cache:/model-cache
+    command: >
+      /model-cache/models/Qwen--Qwen3-0.6B
+      --served-model-name qwen3-0.6b
+      --host 0.0.0.0
+      --port 8000
+      --max-model-len 512
+      --max-num-batched-tokens 512
+      --gpu-memory-utilization 0.5
+      --enforce-eager
+    deploy:
+      resources:
+        limits:
+          memory: 3500M
+    restart: unless-stopped
