@@ -1,0 +1,25 @@
+# vLLM Local POC Configuration
+server:
+  host: "0.0.0.0"
+  port: 8000
+  api_key: null  # No auth for local POC
+
+model:
+  name: "Qwen/Qwen3-0.6B"
+  served_model_name: "qwen3-0.6b"
+  max_model_len: 4096
+  max_num_batched_tokens: 1024
+  gpu_memory_utilization: 0.5
+  enforce_eager: true
+  enable_auto_tool_choice: true
+  tool_call_parser: "hermes"
+  dtype: "auto"
+
+cache:
+  # Stored locally inside the repository for easy clean-up and Docker volume mounting
+  local_cache_dir: "./model-cache"
+
+testing:
+  test_prompt: "Write a Python function to check if a string is a palindrome."
+  concurrency_requests: 2
+  test_max_tokens: 60
