@@ -16,7 +16,7 @@ HOST="0.0.0.0"
 PORT="8000"
 MAX_MODEL_LEN="8192"
 MAX_BATCHED_TOKENS="1024"
-GPU_MEMORY_UTILIZATION="0.5"
+GPU_MEMORY_UTILIZATION="0.65"
 
 # 1. Verify virtual environment exists
 if [ ! -f "$VENV_BIN/vllm" ]; then
@@ -28,7 +28,7 @@ fi
 # 2. Configure isolated cache & safe hardware limits for 8GB Mac
 export HF_HOME="$MODEL_CACHE"
 export VLLM_PLUGINS="metal"
-export VLLM_METAL_WIRED_LIMIT_MB="2048" # Never wire more than 2GB to prevent freezing macOS
+export VLLM_METAL_WIRED_LIMIT_MB="2560" # Wired RAM capped at 2.5GB (+512MB buffer)
 
 # 3. Determine model path
 if [ -d "$DEFAULT_MODEL_DIR" ]; then
@@ -47,7 +47,7 @@ echo "  Endpoint:        http://$HOST:$PORT/v1"
 echo "  Metrics:         http://$HOST:$PORT/metrics"
 echo "  Max Context:     $MAX_MODEL_LEN"
 echo "  Memory Fraction: $GPU_MEMORY_UTILIZATION"
-echo "  Safety:          Wired RAM capped at 2.0GB, eager mode enabled"
+echo "  Safety:          Wired RAM capped at 2.5GB (+512MB), eager mode enabled"
 echo "=================================================="
 
 # 4. Launch vLLM server with memory safety flags

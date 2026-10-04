@@ -44,9 +44,9 @@ OpenWeight-Fabric/
 
 On an 8 GB unified memory Mac, default vLLM settings can exhaust physical memory and freeze macOS. This repository enforces the following safeguards in `scripts/run_local.sh`:
 
-- Wired Memory Limit: `export VLLM_METAL_WIRED_LIMIT_MB=2048` caps wired memory to 2.0 GB.
-- Memory Utilization: `--gpu-memory-utilization 0.5` allocates a controlled slice of memory for weights and KV cache.
-- Context Ceiling: `--max-model-len 8192` and `--max-num-batched-tokens 1024` restrict KV cache consumption (~915 MB for Qwen3-0.6B), comfortably fitting OpenCode agent tool schemas without memory pressure.
+- Wired Memory Limit: `export VLLM_METAL_WIRED_LIMIT_MB=2560` caps wired memory to 2.5 GB.
+- Memory Utilization: `--gpu-memory-utilization 0.65` allocates a controlled slice of memory for weights and KV cache (~1.1 GB KV cache).
+- Context Ceiling: `--max-model-len 8192` and `--max-num-batched-tokens 1024` restrict KV cache consumption (~940 MB for Qwen3-0.6B), comfortably fitting OpenCode agent tool schemas without memory pressure.
 - Eager Execution: `--enforce-eager` avoids JIT compilation memory overhead.
 - Model Cache Isolation: Weights are stored inside `./model-cache` for easy deletion and Docker volume mounting.
 
@@ -160,7 +160,7 @@ Add the local provider to your `providers` block. Do not set `"model"` at the ro
         "qwen3-0.6b": {
           "name": "Qwen 3 0.6B (Local)",
           "limit": {
-            "output": 128
+            "output": 512
           }
         }
       }

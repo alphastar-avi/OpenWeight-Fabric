@@ -12,7 +12,7 @@
         "qwen3-0.6b": {
           "name": "Qwen 3 0.6B (Local)",
           "limit": {
-            "output": 128
+            "output": 512
           }
         }
       }
