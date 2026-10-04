@@ -46,7 +46,7 @@ On an 8 GB unified memory Mac, default vLLM settings can exhaust physical memory
 
 - Wired Memory Limit: `export VLLM_METAL_WIRED_LIMIT_MB=2048` caps wired memory to 2.0 GB.
 - Memory Utilization: `--gpu-memory-utilization 0.5` allocates a controlled slice of memory for weights and KV cache.
-- Context Ceiling: `--max-model-len 5120` and `--max-num-batched-tokens 1024` restrict KV cache consumption (~570 MB for Qwen3-0.6B).
+- Context Ceiling: `--max-model-len 8192` and `--max-num-batched-tokens 1024` restrict KV cache consumption (~915 MB for Qwen3-0.6B), comfortably fitting OpenCode agent tool schemas without memory pressure.
 - Eager Execution: `--enforce-eager` avoids JIT compilation memory overhead.
 - Model Cache Isolation: Weights are stored inside `./model-cache` for easy deletion and Docker volume mounting.
 
