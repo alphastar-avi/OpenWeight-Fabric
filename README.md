@@ -1,6 +1,12 @@
-# OpenWeight-Fabric: Local Inference POC
+# OpenWeight-Fabric: Local Inference 
 
-Local Proof of Concept (POC) for self-hosting open-weight LLMs using vLLM on Apple Silicon, exposing an OpenAI-compatible API, and integrating with developer tools such as OpenCode.
+Local POC for self-hosting open-weight LLMs using vLLM on Apple Silicon. (for demo), exposing an OpenAI-compatible API, and integrating with developer tools such as OpenCode.
+
+https://github.com/user-attachments/assets/267ac7b6-f673-4128-9781-0c84c371d962
+
+
+https://github.com/user-attachments/assets/6ec61284-0c5b-4d79-b540-0bfe32630b75
+
 
 ## Architecture
 
@@ -16,9 +22,9 @@ OpenAI-Compatible Endpoint (http://localhost:8000/v1)
 ```
 
 Target Environment:
-- Machine: Apple Silicon Mac (M-series), macOS
-- Memory: 8 GB Unified Memory
-- Purpose: Functional API testing and client compatibility, not performance benchmarking
+- Machine: Apple Silicon M2
+- Memory: 8 GB UF
+
 
 ## Repository Structure
 
