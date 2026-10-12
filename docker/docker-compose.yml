@@ -18,12 +18,14 @@ services:
       --served-model-name qwen3-0.6b
       --host 0.0.0.0
       --port 8000
-      --max-model-len 512
-      --max-num-batched-tokens 512
-      --gpu-memory-utilization 0.5
+      --max-model-len 8192
+      --max-num-batched-tokens 1024
+      --gpu-memory-utilization 0.65
       --enforce-eager
+      --enable-auto-tool-choice
+      --tool-call-parser hermes
     deploy:
       resources:
         limits:
-          memory: 3500M
+          memory: 5500M
     restart: unless-stopped
