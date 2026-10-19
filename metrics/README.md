@@ -1,6 +1,6 @@
 # vLLM Live Telemetry Dashboard
 
-Minimalist, vibe-coded, monochromatic real-time telemetry dashboard for monitoring vLLM production inference engines via standard `/metrics` (Prometheus) endpoints.
+Minimalist, clean, monochromatic real-time telemetry dashboard for monitoring vLLM production inference engines via standard `/metrics` (Prometheus) endpoints.
 
 ---
 

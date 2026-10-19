@@ -1,0 +1,3 @@
+# Exclude metrics UI files from GitHub repository language statistics
+metrics/** linguist-vendored
+metrics/** linguist-detectable=false

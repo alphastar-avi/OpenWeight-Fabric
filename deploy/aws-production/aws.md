@@ -135,3 +135,12 @@ curl http://<INSTANCE-IP>:8000/v1/chat/completions \
     "max_tokens": 150
   }'
 ```
+
+---
+
+## 7. Note on FP8 Support (Hardware & vLLM Engine)
+
+Full-speed FP8 inference requires alignment across both hardware and the inference engine:
+1. **Hardware (GPU):** Requires NVIDIA Ada Lovelace (`sm_89`, e.g., L40S on `g6e`) or Hopper (`sm_90`). Older architectures (e.g., Ampere A10G on `g5`) lack native FP8 compute Tensor Cores and fall back to Marlin software dequantization (~16 tok/s vs 25–35+ tok/s).
+2. **vLLM Engine Support:** vLLM v0.31.0+ natively compiles FlashInfer and Marlin FP8 kernels for `--kv-cache-dtype fp8` and `--quantization fp8`. Verify that the model checkpoint includes `q_scale` and `k_scale` calibration factors in its configuration to avoid uncalibrated attention warnings.
+

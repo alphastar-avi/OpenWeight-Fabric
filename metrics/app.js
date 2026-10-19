@@ -95,16 +95,33 @@ function parsePrometheusText(text) {
       continue;
     }
 
-    // Example match: vllm:num_requests_running{model_name="..."} 3.0
-    // Or: vllm:gpu_cache_usage_factor 0.28
-    const regex = /^([a-zA-Z0-9_:]+)(?:\{([^}]*)\})?\s+([+-]?[0-9]*\.?[0-9]+(?:[eE][+-]?[0-9]+)?)/;
+    // Standard Prometheus text format regex:
+    // Supports metric names with colons, complex label sets, scientific notation, Inf/NaN, and optional timestamps
+    const regex = /^([a-zA-Z_:][a-zA-Z0-9_:]*)(?:\{([^}]*)\})?\s+([+-]?(?:[0-9]*\.?[0-9]+(?:[eE][+-]?[0-9]+)?|Inf|NaN))\s*(?:\d+)?$/i;
     const match = line.match(regex);
     if (match) {
       const name = match[1];
       const rawLabels = match[2] || '';
-      const value = parseFloat(match[3]);
+      const rawVal = match[3];
+      
+      let value;
+      const lowerVal = rawVal.toLowerCase();
+      if (lowerVal === '+inf' || lowerVal === 'inf') {
+        value = Infinity;
+      } else if (lowerVal === '-inf') {
+        value = -Infinity;
+      } else if (lowerVal === 'nan') {
+        value = NaN;
+      } else {
+        value = parseFloat(rawVal);
+      }
 
+      // Store by raw name and normalized name (without 'vllm:' prefix)
       metrics.set(name, value);
+      if (name.startsWith('vllm:')) {
+        metrics.set(name.slice(5), value);
+      }
+
       rawList.push({ name, labels: rawLabels, value });
     }
   }
