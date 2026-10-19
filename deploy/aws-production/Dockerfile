@@ -1,6 +1,5 @@
 # Production Dockerfile for Enterprise AWS Deployment
-# Inherits from official NVIDIA-optimized vLLM image
-FROM vllm/vllm-openai:v0.6.3
+FROM vllm/vllm-openai:v0.31.0
 
 # Set operational environment variables
 ENV PYTHONUNBUFFERED=1 \

@@ -2,18 +2,19 @@ version: '3.8'
 
 services:
   vllm-production:
-    image: vllm/vllm-openai:v0.6.3
+    image: vllm/vllm-openai:v0.31.0
     container_name: vllm-prod-server
-    restart: unless-stopped
+    restart: on-failure:3
     ipc: host
     ports:
       - "${HOST_PORT:-8000}:${CONTAINER_PORT:-8000}"
     environment:
-      - HF_HOME=/model-cache
-      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN:-}
+      - HF_TOKEN=${HF_TOKEN:-}
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
       - VLLM_LOGGING_LEVEL=INFO
     volumes:
-      - ${CACHE_DIR:-/data/model-cache}:/model-cache
+      - ${CACHE_DIR:-~/.cache/huggingface}:/root/.cache/huggingface
+      - ~/.cache/vllm:/root/.cache/vllm
     deploy:
       resources:
         reservations:
@@ -21,22 +22,38 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    command: >
-      --model ${MODEL_ID:-Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8}
-      --served-model-name ${SERVED_MODEL_NAME:-qwen3-coder-30b}
-      --host 0.0.0.0
-      --port ${CONTAINER_PORT:-8000}
-      --tensor-parallel-size ${TENSOR_PARALLEL_SIZE:-1}
-      --max-model-len ${MAX_MODEL_LEN:-32768}
-      --max-num-batched-tokens ${MAX_NUM_BATCHED_TOKENS:-2048}
-      --gpu-memory-utilization ${GPU_MEMORY_UTILIZATION:-0.92}
-      --kv-cache-dtype ${KV_CACHE_DTYPE:-fp8}
-      --enable-prefix-caching
-      --enable-auto-tool-choice
-      --tool-call-parser hermes
+    command: [
+      "${MODEL_ID:-Qwen/Qwen3.8-27B-FP8}",
+      "--host", "0.0.0.0",
+      "--port", "${CONTAINER_PORT:-8000}",
+      "--served-model-name", "${SERVED_MODEL_NAME:-qwen3.8-27b}",
+
+      # Memory & Precision Optimization for NVIDIA L40S (48 GB)
+      "--gpu-memory-utilization", "${GPU_MEMORY_UTILIZATION:-0.85}",
+      "--kv-cache-dtype", "${KV_CACHE_DTYPE:-fp8}",
+
+      # Concurrency & CUDA Graph Compilation
+      "--max-num-seqs", "${MAX_NUM_SEQS:-16}",
+      "--compilation-config", '{"max_cudagraph_capture_size":16}',
+
+      # Context Window & Chunked Prefill
+      "--max-model-len", "${MAX_MODEL_LEN:-16384}",
+      "--max-num-batched-tokens", "${MAX_NUM_BATCHED_TOKENS:-4192}",
+      "--enable-prefix-caching",
+
+      # Skip Vision Modality Allocation for Text/Coding Workloads
+      "--limit-mm-per-prompt", '{"image":0,"video":0}',
+
+      # Tool Calling & Agent Support
+      "--enable-auto-tool-choice",
+      "--tool-call-parser", "hermes",
+
+      # Force vLLM Defaults to Prevent Model Generation Config Temperature Overrides
+      "--generation-config", "vllm"
+    ]
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:${CONTAINER_PORT:-8000}/health || exit 1"]
-      interval: 15s
+      test: ["CMD", "curl", "-fsS", "http://localhost:${CONTAINER_PORT:-8000}/health"]
+      interval: 20s
       timeout: 5s
-      retries: 20
-      start_period: 60s
+      retries: 5
+      start_period: 180s

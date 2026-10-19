@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>vLLM Telemetry — Minimal Metrics Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Bar: Navigation & Controls -->
+    <header class="header">
+      <div class="brand">
+        <span class="status-indicator" id="statusIndicator"></span>
+        <div class="brand-text">
+          <h1 class="title">vLLM ENGINE TELEMETRY</h1>
+          <span class="subtitle" id="serverModelLabel">Model: Detecting...</span>
+        </div>
+      </div>
+
+      <div class="endpoint-control">
+        <div class="input-group">
+          <label for="endpointInput" class="visually-hidden">vLLM Metrics Endpoint URL</label>
+          <span class="input-prefix">ENDPOINT</span>
+          <input 
+            type="text" 
+            id="endpointInput" 
+            value="http://localhost:8000/metrics" 
+            placeholder="http://host:port/metrics"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <select id="presetSelect" aria-label="Endpoint Presets">
+            <option value="http://localhost:8000/metrics">Preset: Local (8000)</option>
+            <option value="http://localhost:80/metrics">Preset: Local (80)</option>
+            <option value="custom">Preset: Custom</option>
+          </select>
+        </div>
+
+        <div class="actions">
+          <button id="pollToggleBtn" class="btn btn-primary" type="button">
+            <span class="btn-icon" id="pollIcon">▶</span>
+            <span id="pollBtnText">Auto Poll (2s)</span>
+          </button>
+          <select id="pollIntervalSelect" aria-label="Polling Interval" class="interval-select">
+            <option value="1000">1s</option>
+            <option value="2000" selected>2s</option>
+            <option value="5000">5s</option>
+            <option value="10000">10s</option>
+          </select>
+          <button id="fetchNowBtn" class="btn btn-secondary" type="button">Fetch</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Connection Banner (Hidden by default, shown if error/CORS occurs) -->
+    <div id="alertBanner" class="alert-banner hidden">
+      <span class="alert-icon">!</span>
+      <span class="alert-message" id="alertMessage">Unable to fetch from endpoint.</span>
+      <button id="dismissAlertBtn" class="alert-close" type="button" aria-label="Dismiss alert">&times;</button>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <main class="dashboard-grid">
+      <!-- KPI 1: Active Concurrency -->
+      <section class="card kpi-card" id="cardConcurrency">
+        <div class="card-header">
+          <span class="card-label">CONCURRENCY & QUEUE</span>
+          <span class="metric-tag" id="concurrencyStatus">HEALTHY</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="primary-kpi">
+            <span class="kpi-number" id="metricRunning">0</span>
+            <span class="kpi-subtext">Running Streams</span>
+          </div>
+          <div class="secondary-kpis">
+            <div class="sub-kpi">
+              <span class="sub-kpi-label">Waiting in Queue</span>
+              <span class="sub-kpi-val warning" id="metricWaiting">0</span>
+            </div>
+            <div class="sub-kpi">
+              <span class="sub-kpi-label">Swapped to CPU</span>
+              <span class="sub-kpi-val" id="metricSwapped">0</span>
+            </div>
+          </div>
+        </div>
+        <div class="sparkline-wrapper">
+          <canvas id="chartConcurrency" width="300" height="48"></canvas>
+        </div>
+      </section>
+
+      <!-- KPI 2: KV Cache Memory -->
+      <section class="card kpi-card" id="cardKvCache">
+        <div class="card-header">
+          <span class="card-label">GPU KV CACHE UTILIZATION</span>
+          <span class="metric-tag" id="kvCacheTag">0.0%</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="primary-kpi">
+            <span class="kpi-number" id="metricKvCachePct">0.0%</span>
+            <span class="kpi-subtext">Pool Allocated</span>
+          </div>
+          <div class="secondary-kpis">
+            <div class="sub-kpi">
+              <span class="sub-kpi-label">Tokens In Flight</span>
+              <span class="sub-kpi-val" id="metricTokensInFlight">0</span>
+            </div>
+            <div class="sub-kpi">
+              <span class="sub-kpi-label">Cache State</span>
+              <span class="sub-kpi-val success" id="metricKvState">Optimal</span>
+            </div>
+          </div>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="kvProgressBar" style="width: 0%;"></div>
+        </div>
+        <div class="sparkline-wrapper">
+          <canvas id="chartKvCache" width="300" height="48"></canvas>
+        </div>
+      </section>
+
+      <!-- KPI 3: Prefix Cache Hit Rate -->
+      <section class="card kpi-card" id="cardPrefixCache">
+        <div class="card-header">
+          <span class="card-label">PREFIX CACHE REUSE</span>
+          <span class="metric-tag" id="prefixStatus">STANDBY</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="primary-kpi">
+            <span class="kpi-number" id="metricPrefixHitRate">0.0%</span>
+            <span class="kpi-subtext">Prompt Reuse Rate</span>
+          </div>
+          <div class="secondary-kpis">
+            <div class="sub-kpi">
+              <span class="sub-kpi-label">Prefill Savings</span>
+              <span class="sub-kpi-val success" id="metricPrefixSavings">Active</span>
+            </div>
+            <div class="sub-kpi">
+              <span class="sub-kpi-label">Radix Tree</span>
+              <span class="sub-kpi-val" id="metricRadixStatus">Online</span>
+            </div>
+          </div>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar accent" id="prefixProgressBar" style="width: 0%;"></div>
+        </div>
+        <div class="sparkline-wrapper">
+          <canvas id="chartPrefix" width="300" height="48"></canvas>
+        </div>
+      </section>
+
+      <!-- KPI 4: Throughput & Speed -->
+      <section class="card kpi-card" id="cardThroughput">
+        <div class="card-header">
+          <span class="card-label">GENERATION THROUGHPUT</span>
+          <span class="metric-tag" id="throughputTag">0 tok/s</span>
+        </div>
+        <div class="kpi-value-row">
+          <div class="primary-kpi">
+            <span class="kpi-number" id="metricGenThroughput">0.0</span>
+            <span class="kpi-subtext">Decode tok/s</span>
+          </div>
+          <div class="secondary-kpis">
+            <div class="sub-kpi">
+              <span class="sub-kpi-label">Prompt Throughput</span>
+              <span class="sub-kpi-val" id="metricPromptThroughput">0 tok/s</span>
+            </div>
+            <div class="sub-kpi">
+              <span class="sub-kpi-label">TTFT Estimate</span>
+              <span class="sub-kpi-val" id="metricTtft">&lt; 350ms</span>
+            </div>
+          </div>
+        </div>
+        <div class="sparkline-wrapper">
+          <canvas id="chartThroughput" width="300" height="48"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <!-- Secondary Panel: Aggregate Volume & Raw Telemetry Explorer -->
+    <div class="bottom-layout">
+      <!-- Token Totals -->
+      <section class="card totals-card">
+        <div class="card-header">
+          <span class="card-label">SESSION TOKEN VOLUME</span>
+        </div>
+        <div class="totals-grid">
+          <div class="total-stat">
+            <span class="total-label">Prompt Tokens (In)</span>
+            <span class="total-num" id="metricPromptTotal">0</span>
+          </div>
+          <div class="total-stat">
+            <span class="total-label">Generation Tokens (Out)</span>
+            <span class="total-num" id="metricGenTotal">0</span>
+          </div>
+          <div class="total-stat">
+            <span class="total-label">Total Cumulative</span>
+            <span class="total-num accent" id="metricCombinedTotal">0</span>
+          </div>
+          <div class="total-stat">
+            <span class="total-label">Last Scrape Latency</span>
+            <span class="total-num" id="scrapeLatency">-- ms</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Raw Prometheus Metrics Inspector -->
+      <section class="card inspector-card">
+        <div class="card-header">
+          <span class="card-label">RAW PROMETHEUS METRIC REGISTRY</span>
+          <div class="inspector-filter-box">
+            <input 
+              type="text" 
+              id="metricFilterInput" 
+              placeholder="Filter metrics (e.g. cache, tok, seqs)..." 
+              spellcheck="false"
+            >
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="metrics-table" id="metricsTable">
+            <thead>
+              <tr>
+                <th scope="col" style="width: 45%;">METRIC IDENTIFIER</th>
+                <th scope="col" style="width: 35%;">LABELS</th>
+                <th scope="col" style="width: 20%; text-align: right;">VALUE</th>
+              </tr>
+            </thead>
+            <tbody id="metricsTableBody">
+              <tr>
+                <td colspan="3" class="table-empty">No telemetry collected. Click Fetch or start Auto Poll.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- Manual Paste Modal (For Air-gapped / Strict VPN CORS restrictions) -->
+    <dialog id="pasteModal" class="modal">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h2>Manual Raw Ingest (CORS Fallback)</h2>
+          <button id="closeModalBtn" type="button" class="btn-close">&times;</button>
+        </div>
+        <p class="modal-desc">
+          If browser CORS prevents direct fetch from an internal VPN IP, paste the raw output from <code>curl http://&lt;host&gt;/metrics</code> below:
+        </p>
+        <textarea id="pasteTextarea" placeholder="# HELP vllm:num_requests_running..."></textarea>
+        <div class="modal-actions">
+          <button id="parsePasteBtn" type="button" class="btn btn-primary">Parse Telemetry</button>
+          <button id="cancelPasteBtn" type="button" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </dialog>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
