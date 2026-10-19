@@ -40,6 +40,8 @@ OpenWeight-Fabric/
 │   ├── run_local.sh         # Launch script with 8 GB RAM memory guardrails
 │   ├── test_api.py          # API validation suite
 │   └── opencode_config.json # OpenCode provider configuration template
+├── metrics/                 # Minimal telemetry dashboard for /metrics
+├── deploy/                  # Production AWS deployment configurations and runbooks
 └── docker/
     ├── Dockerfile           # Containerized vLLM image
     ├── docker-compose.yml   # Docker compose with memory limits
@@ -142,6 +144,17 @@ The suite validates:
 3. Streaming chat completion (Server-Sent Events deltas and time-to-first-token)
 4. Parallel concurrency handling (2 simultaneous requests)
 5. Prometheus metrics endpoint at `/metrics`
+
+## Metrics Dashboard
+
+Launch the minimal real-time telemetry dashboard to view live concurrency, KV cache, and throughput from `/metrics`:
+
+```bash
+cd metrics
+python3 -m http.server 3000
+```
+
+Open `http://localhost:3000` in your browser.
 
 ## OpenCode Integration
 
